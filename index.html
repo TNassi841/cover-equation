@@ -80,7 +80,13 @@ button[aria-pressed="true"] { border-color: var(--ink); background: var(--paper-
 .notes h3 { font: 600 15.5px/1.3 var(--body); margin: 0 0 6px; }
 .notes p { margin: 0 0 10px; color: var(--ink-2); max-width: 36em; }
 .notes ul { margin: 0; padding: 0; list-style: none; color: var(--ink-2); }
-.notes li { margin-bottom: 5px; }
+.pubs li { display: grid; gap: 1px; margin-bottom: 13px; }
+.pubs span { font-size: 13px; letter-spacing: .03em; }
+.pubs a { color: var(--ink); line-height: 1.32; }
+.pubs small { font-size: 13.5px; }
+.notes .orcid { font-size: 14px; }
+.inline-math { font-family: var(--math); font-style: italic; white-space: nowrap; }
+sub { font-size: .7em; line-height: 0; }
 a { color: inherit; text-underline-offset: 2px; }
 @media (max-width: 820px) {
   .work { grid-template-columns: minmax(0, 1fr); padding-top: 20px; }
@@ -128,12 +134,22 @@ a { color: inherit; text-underline-offset: 2px; }
 
   <section class="notes">
     <div>
-      <h3>Why this is on the cover</h3>
-      <p>Breathing is regulated by feedback that arrives late: the brain senses blood gases some time after each breath. When that feedback is too strong or too slow, breathing can swing instead of settling. This thesis measures that instability from routine sleep recordings.</p>
+      <h3>Scientific background</h3>
+      <p>Many physiological systems regulate themselves through feedback that acts after a delay. Mackey and Glass showed that such systems can move from steady behavior to oscillation and chaos, using models of breathing control and blood cell production (<a href="https://doi.org/10.1126/science.267326" target="_blank" rel="noopener">Science, 1977</a>).</p>
+      <p>Breathing is one of these systems. Ventilation changes arterial CO<sub>2</sub>, the brainstem responds to that change, and the correction takes effect after a delay. Loop gain expresses how strongly this loop responds to a disturbance. When it is high, corrections overshoot and breathing can oscillate during sleep (Chapter 2).</p>
+      <p>Chapter 6 of this thesis extends the breathing form of these equations, <span class="inline-math">x&#775;(t) = L − v(t−τ) x(t)</span>, where <span class="inline-math">x</span> is arterial CO<sub>2</sub>, <span class="inline-math">L</span> its production and <span class="inline-math">v</span> ventilation one delay earlier. Fitted to a respiratory effort belt signal, it estimates loop gain and effective delay across the night.</p>
+      <p>The cover shows the best-known form of the equation. It shares the delayed-feedback structure, and its shapes carry no clinical meaning.</p>
     </div>
     <div>
-      <h3>About this figure</h3>
-      <p>The artwork uses the Mackey–Glass equation, a classic model of delayed physiological feedback (<a href="https://doi.org/10.1126/science.267326" target="_blank" rel="noopener">Science, 1977</a>). It is an illustration, separate from the model in the thesis, and the shapes carry no clinical meaning.</p>
+      <h3>Publications in this thesis</h3>
+      <ul class="pubs">
+        <li><span>Chapter 2</span><a href="https://doi.org/10.1093/sleep/zsag155" target="_blank" rel="noopener">Quantification of Ventilatory Control in Sleep Apnea: From Physiological Insight to Computable Loop Gain</a><small>Nassi T, et al. SLEEP 2026;49(9):zsag155</small></li>
+        <li><span>Chapter 3</span><a href="https://doi.org/10.1093/sleep/zsaf134" target="_blank" rel="noopener">CAISR: Achieving Human-Level Performance in Automated Sleep Analysis across All Clinical Sleep Metrics</a><small>Nassi T, Nasiri S, Ganglberger W, Meulenbrugge EJ, et al. SLEEP 2025;48(8):zsaf134</small></li>
+        <li><span>Chapter 4</span><a href="https://doi.org/10.1109/TBME.2021.3136753" target="_blank" rel="noopener">Automated Scoring of Respiratory Events in Sleep With a Single Effort Belt and Deep Neural Networks</a><small>Nassi T, et al. IEEE Trans Biomed Eng 2022;69(6):2094–2104</small></li>
+        <li><span>Chapter 5</span><a href="https://doi.org/10.1513/AnnalsATS.202311-979OC" target="_blank" rel="noopener">Morphological Prediction of Continuous Positive Airway Pressure–associated Acute Respiratory Instability</a><small>Nassi T, et al. Ann Am Thorac Soc 2025;22(1):138–149</small></li>
+        <li><span>Chapter 6</span><a href="https://doi.org/10.1093/sleep/zsaf213" target="_blank" rel="noopener">Unraveling Sleep Apnea Dynamics: Quantifying Loop Gain Using Dynamical Modeling of Ventilatory Control</a><small>Nassi T, et al. SLEEP 2026;49(2):zsaf213</small></li>
+      </ul>
+      <p class="orcid"><a href="https://orcid.org/0000-0003-0269-3405" target="_blank" rel="noopener">ORCID 0000-0003-0269-3405</a></p>
     </div>
   </section>
 </div>
