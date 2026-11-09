@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Turn the dials of the Mackey-Glass equation from a thesis cover and watch the shape redraw.">
+<title>The Cover Equation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500&family=Fira+Sans:wght@400;500;600&family=STIX+Two+Text:ital@0;1&display=swap">
+<style>
+/* Layout: the thesis cover's own paper and inks. A fixed specimen plate on the left stays in view while the explanation scrolls beside it. */
+:root {
+  --paper: #F6F3EA; --paper-2: #EBE5D9; --ink: #281F16; --ink-2: #5E5140; --rule: #D8CFBD;
+  --beta: #1C7A8C; --n: #4B45B8; --gamma: #C24A2E; --tau: #8C601E;
+  --display: Didot, "Bodoni Moda", "Bodoni 72", Georgia, serif;
+  --body: "Fira Sans", "Helvetica Neue", Arial, sans-serif;
+  --math: "STIX Two Text", "STIX Two Math", "Times New Roman", serif;
+  --art: ink;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0B1228; --paper-2: #111C3A; --ink: #E9EEF7; --ink-2: #AEBBD6; --rule: #2A3658;
+  --beta: #63D8E8; --n: #A99CFF; --gamma: #FF8E6E; --tau: #FFC57C; --art: glow; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --paper: #0B1228; --paper-2: #111C3A; --ink: #E9EEF7; --ink-2: #AEBBD6; --rule: #2A3658;
+  --beta: #63D8E8; --n: #A99CFF; --gamma: #FF8E6E; --tau: #FFC57C; --art: glow; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 17px/1.55 var(--body); }
+.page { max-width: 1240px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--tau); font-weight: 500; margin: 0 0 10px; }
+h1 { font: 500 clamp(38px, 6vw, 62px)/1.05 var(--display); margin: 0 0 14px; text-wrap: balance; }
+.lede { font-size: clamp(18px, 2.2vw, 21px); line-height: 1.45; max-width: 44em; margin: 0 0 32px; color: var(--ink-2); }
+.lede strong { color: var(--ink); font-weight: 500; }
+
+.eq-wrap { overflow-x: auto; border-block: 1px solid var(--rule); padding-block: 24px 20px; margin-bottom: 36px; }
+.eq { display: grid; grid-template-columns: repeat(5, auto); justify-content: start; column-gap: clamp(10px, 2vw, 26px); row-gap: 10px; width: max-content; min-width: 100%; }
+.math { font: italic 400 clamp(26px, 4.2vw, 44px)/1.2 var(--math); display: flex; align-items: center; gap: .18em; white-space: nowrap; }
+.math .up { font-style: normal; }
+.op { font: 400 clamp(26px, 4.2vw, 44px)/1.2 var(--math); display: flex; align-items: center; }
+.frac { display: inline-flex; flex-direction: column; align-items: center; font-size: .72em; line-height: 1.25; }
+.frac > span:first-child { border-bottom: 1.5px solid currentColor; padding: 0 .35em .1em; }
+.frac > span:last-child { padding-top: .1em; }
+sup { font-size: .68em; line-height: 0; }
+.c-beta { color: var(--beta); } .c-n { color: var(--n); } .c-gamma { color: var(--gamma); } .c-tau { color: var(--tau); }
+.cap { font-size: 14px; line-height: 1.3; color: var(--ink-2); max-width: 13em; }
+.cap b { display: block; color: var(--ink); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr); gap: clamp(28px, 4.5vw, 64px); align-items: start; }
+.stage { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); display: grid; gap: 10px; min-width: 0; }
+.plate { position: relative; width: 100%; max-width: min(100%, 58vh); margin-inline: auto; aspect-ratio: 1; background: linear-gradient(var(--paper), var(--paper-2)); border: 1px solid var(--rule); }
+.plate canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.plate-tag { position: absolute; left: 12px; top: 10px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.status { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; font-size: 15px; min-height: 24px; }
+.status b { font-weight: 600; }
+.status span { color: var(--ink-2); font-size: 14px; font-variant-numeric: tabular-nums; }
+.tl { width: 100%; height: 118px; display: block; }
+.scrub { display: flex; gap: 12px; align-items: center; }
+.scrub input { flex: 1; min-width: 0; accent-color: var(--ink-2); }
+.readout { font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.readout b { color: var(--ink); font-weight: 600; }
+
+button { font: 500 14px/1 var(--body); color: var(--ink); background: transparent; border: 1px solid var(--ink-2); padding: 7px 11px; cursor: pointer; border-radius: 2px; }
+button:hover { background: var(--paper-2); }
+:focus-visible { outline: 2px solid var(--n); outline-offset: 2px; }
+
+.col { display: grid; gap: 44px; min-width: 0; }
+h2 { font: 500 clamp(26px, 3.2vw, 32px)/1.15 var(--display); margin: 0 0 8px; text-wrap: balance; }
+.col p { margin: 0 0 12px; max-width: 62ch; }
+.hint { color: var(--ink-2); font-size: 15px; }
+.dial { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; padding-block: 10px; border-top: 1px solid var(--rule); }
+.dial .sym { font: italic 400 25px/1 var(--math); }
+.dial label { font-weight: 500; }
+.dial output { font-variant-numeric: tabular-nums; font-weight: 600; }
+.dial input { grid-column: 1 / -1; width: 100%; }
+.dial small { grid-column: 1 / -1; color: var(--ink-2); font-size: 13.5px; }
+#beta { accent-color: var(--beta); } #n { accent-color: var(--n); } #gamma { accent-color: var(--gamma); } #tau { accent-color: var(--tau); }
+.chart { width: 100%; height: 210px; display: block; margin-block: 8px; }
+
+.term { padding-block: 18px; border-top: 1px solid var(--rule); }
+.term h3 { font: italic 400 26px/1.2 var(--math); margin: 0 0 2px; }
+.term .name { font: 600 16px/1.3 var(--body); margin: 0 0 8px; }
+.term .lbl { font-weight: 600; }
+.tries { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+
+.thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.thumb { padding: 0; display: grid; text-align: left; background: linear-gradient(var(--paper), var(--paper-2)); border-color: var(--rule); }
+.thumb canvas { width: 100%; aspect-ratio: 1; display: block; }
+.thumb span { padding: 7px 8px 9px; font: 400 13px/1.25 var(--body); }
+.thumb span b { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
+.thumb[aria-pressed="true"] { border-color: var(--tau); outline: 1px solid var(--tau); }
+
+ol.steps { margin: 0; padding-left: 1.3em; max-width: 62ch; }
+ol.steps li { margin-bottom: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+.tw { overflow-x: auto; }
+th, td { text-align: left; padding: 6px 12px 6px 0; border-top: 1px solid var(--rule); font-weight: 400; }
+th { color: var(--ink-2); }
+a { color: var(--n); }
+.foot { margin-top: 48px; padding-top: 14px; border-top: 1px solid var(--rule); color: var(--ink-2); font-size: 14px; }
+@media (max-width: 860px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .stage { position: static; }
+  .plate { max-width: 100%; }
+}
+@media (max-width: 560px) { .eq { column-gap: 8px; min-width: 0; } .math, .op { font-size: 23px; } .cap { max-width: 6.5em; font-size: 12.5px; } }
+@media (max-width: 460px) { .thumbs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+<style>body{margin:0}</style>
+</head>
+<body>
+
+<div class="page">
+  <p class="eyebrow">Back cover · About the artwork</p>
+  <h1>The Cover Equation</h1>
+  <p class="lede"><strong>The equation says one simple thing: the change right now is what arrives minus what leaves.</strong> The twist is that what arrives was decided a while ago. That late reaction is what draws the shape on the thesis cover.</p>
+
+  <div class="eq-wrap">
+    <div class="eq" role="img" aria-label="x dot of t equals beta times x of t minus tau, divided by 1 plus x of t minus tau to the power n, minus gamma times x of t.">
+      <div class="math"><span>x&#775;(t)</span></div>
+      <div class="op">=</div>
+      <div class="math"><span class="c-beta">β</span>
+        <span class="frac"><span><span>x(t−<span class="c-tau">τ</span>)</span></span><span><span class="up">1 +</span> x(t−<span class="c-tau">τ</span>)<sup class="c-n">n</sup></span></span>
+      </div>
+      <div class="op">−</div>
+      <div class="math"><span class="c-gamma">γ</span><span>x(t)</span></div>
+      <div class="cap"><b>The change</b>how fast the amount goes up or down, now</div>
+      <div></div>
+      <div class="cap"><b>What arrives</b>depends on the amount one delay ago</div>
+      <div></div>
+      <div class="cap"><b>What leaves</b>a fixed share of the amount, now</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="stage" id="stage">
+      <div class="plate">
+        <canvas id="art"></canvas>
+        <canvas id="over"></canvas>
+        <div class="plate-tag" id="plateTag">The cover</div>
+      </div>
+      <div class="status" aria-live="polite"><b id="verdict"></b><span id="balance"></span></div>
+      <canvas class="tl" id="tl" aria-label="The amount x over time, with the present moment and the moment one delay earlier marked."></canvas>
+      <div class="scrub">
+        <button id="play" type="button">Play</button>
+        <input id="now" type="range" min="0" max="1" step="1" value="0" aria-label="Moment in time">
+      </div>
+      <div class="readout" id="readout"></div>
+    </div>
+
+    <div class="col">
+      <section>
+        <h2>Four dials</h2>
+        <p class="hint">Move one and the picture redraws. Each dial says what the cover uses.</p>
+        <div class="dial"><span class="sym c-tau">τ</span><label for="tau">Delay</label><output id="o-tau" for="tau"></output><input id="tau" type="range" min="1" max="30" step="0.5" value="17"><small>Cover: 17. How old the news is.</small></div>
+        <div class="dial"><span class="sym c-beta">β</span><label for="beta">Arrival strength</label><output id="o-beta" for="beta"></output><input id="beta" type="range" min="0.05" max="0.5" step="0.01" value="0.2"><small>Cover: 0.2. How hard new supply pushes in.</small></div>
+        <div class="dial"><span class="sym c-n">n</span><label for="n">Brake sharpness</label><output id="o-n" for="n"></output><input id="n" type="range" min="1" max="20" step="1" value="10"><small>Cover: 10. How suddenly supply gets cut when there is too much.</small></div>
+        <div class="dial"><span class="sym c-gamma">γ</span><label for="gamma">Leaving rate</label><output id="o-gamma" for="gamma"></output><input id="gamma" type="range" min="0.02" max="0.3" step="0.01" value="0.1"><small>Cover: 0.1. The share that disappears over one unit of time.</small></div>
+        <p style="margin-top:12px"><button id="reset" type="button">Back to the cover settings</button></p>
+      </section>
+
+      <section>
+        <h2>Arrivals against departures</h2>
+        <p>Blue-green is what arrives for each amount. The red line is what leaves. Where they cross, the two cancel and nothing would change. That crossing is the balance point.</p>
+        <canvas class="chart" id="bal" aria-label="Curve of arrivals and straight line of departures against the amount x, with their crossing marked."></canvas>
+        <p class="hint">The shaded band shows where the amount really swings at these settings. At the cover's settings the crossing sits on the steep, falling side of the hump. A small rise in the amount causes a big cut in supply, and that cut shows up one delay later, which is why it keeps overshooting.</p>
+      </section>
+
+      <section>
+        <h2>Each term in plain words</h2>
+        <p class="hint">Picture <em>x</em> as the number of cells in the blood. New cells take time to mature, and old ones die off. The buttons change the dials so you can see the result.</p>
+
+        <div class="term">
+          <h3>x&#775;(t)</h3>
+          <p class="name">The change right now</p>
+          <p>The dot means speed. Positive means the amount is rising, negative means it is falling. The whole equation is a rule for this one number, used again and again.</p>
+          <p><span class="lbl">On the picture:</span> every use of the rule places one dot. The cover has 29,660 of them.</p>
+        </div>
+
+        <div class="term">
+          <h3 class="c-tau">x(t−τ)</h3>
+          <p class="name">The amount one delay ago</p>
+          <p>The system reacts to old news. Cells arriving today were started by what the body looked like τ earlier.</p>
+          <p><span class="lbl">On the picture:</span> this is the star of the equation. A short delay lets the system correct itself and the shape shrinks to a point. A longer delay makes it overshoot, so loops appear. Longer still, and the loops stop lining up.</p>
+          <div class="tries"><button data-set="tau=3" type="button">τ = 3, settles</button><button data-set="tau=8" type="button">τ = 8, one loop</button><button data-set="tau=14" type="button">τ = 14, two peaks</button><button data-set="tau=17" type="button">τ = 17, the cover</button></div>
+        </div>
+
+        <div class="term">
+          <h3 class="c-beta">β</h3>
+          <p class="name">Arrival strength</p>
+          <p>How much new supply comes in for a given amount. Think of it as the volume knob on production.</p>
+          <p><span class="lbl">On the picture:</span> turn it up and the swings get bigger. Below γ, supply cannot keep up and everything fades to zero.</p>
+          <div class="tries"><button data-set="beta=0.08" type="button">β = 0.08, dies out</button><button data-set="beta=0.12" type="button">β = 0.12, settles</button><button data-set="beta=0.15" type="button">β = 0.15, one loop</button><button data-set="beta=0.2" type="button">β = 0.2, the cover</button></div>
+        </div>
+
+        <div class="term">
+          <h3><span class="up" style="font-style:normal">1 / (1 + </span>x<sup class="c-n">n</sup><span style="font-style:normal">)</span></h3>
+          <p class="name">The brake, set by <span class="c-n">n</span></p>
+          <p>With few cells, this part is close to 1 and has no effect, so more cells means more new cells. With too many, the bottom gets huge and supply collapses. Together that makes the hump in the chart above. With the cover's n of 10, the hump peaks near x = 0.8.</p>
+          <p><span class="lbl">On the picture:</span> n is how sharply the brake grabs. A soft brake gives a calm system with no loops. A sharp one makes hard swings. Sharper does not always mean wilder: at n = 15 the pattern tidies up again.</p>
+          <div class="tries"><button data-set="n=3" type="button">n = 3, settles</button><button data-set="n=6" type="button">n = 6, one loop</button><button data-set="n=10" type="button">n = 10, the cover</button><button data-set="n=15" type="button">n = 15, two peaks</button></div>
+        </div>
+
+        <div class="term">
+          <h3 class="c-gamma">γ x(t)</h3>
+          <p class="name">What leaves</p>
+          <p>A fixed share of whatever is there right now disappears. This part has no delay at all. It is the steady drain that pulls the amount back down.</p>
+          <p><span class="lbl">On the picture:</span> more drain lowers the balance point. At 0.15 the shape calms to one small loop. Too much and everything dies out.</p>
+          <div class="tries"><button data-set="gamma=0.05" type="button">γ = 0.05, big loop</button><button data-set="gamma=0.1" type="button">γ = 0.1, the cover</button><button data-set="gamma=0.15" type="button">γ = 0.15, small loop</button><button data-set="gamma=0.25" type="button">γ = 0.25, dies out</button></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Walk the delay</h2>
+        <p>The same equation with only τ changed. The other dials stay at the cover's values.</p>
+        <div class="thumbs" id="thumbs"></div>
+      </section>
+
+      <section>
+        <h2>How a line becomes this shape</h2>
+        <ol class="steps">
+          <li>The equation produces one wiggly line over time, shown under the picture.</li>
+          <li>At each moment, read two numbers from that line: the amount now and the amount one delay ago.</li>
+          <li>Use those two numbers as the position of one dot. Now sets left and right, one delay ago sets up and down.</li>
+          <li>Where the line moves slowly the dots are large and dark. Where it moves fast they are small and faint. That is why some edges look inked in.</li>
+          <li>The color only shows the order: teal is early, indigo is the middle, terracotta is late.</li>
+        </ol>
+        <p class="hint">Press Play to watch the dot trace its path. For the cover, the shape is also tilted by about 19 degrees and the up and down direction is flipped. Both are only for looks.</p>
+      </section>
+
+      <section>
+        <h2>What this picture is not</h2>
+        <p>This is artwork. It uses a classic equation and is separate from the breathing model in Chapter 6 of the thesis. The shape says nothing about any patient.</p>
+        <p>Mackey and Glass's <a href="https://doi.org/10.1126/science.267326" target="_blank" rel="noopener">1977 paper</a> covered <a href="https://arxiv.org/abs/2001.09010" target="_blank" rel="noopener">both breathing control and blood cell production</a>. This form is the one usually tied to blood cells, which is why the example here uses cells.</p>
+        <div class="tw"><table>
+          <tr><th>β</th><td>0.2</td><th>Time step</th><td>0.1</td></tr>
+          <tr><th>γ</th><td>0.1</td><th>Steps</th><td>30,000</td></tr>
+          <tr><th>n</th><td>10</td><th>Start</th><td>about 1.1</td></tr>
+          <tr><th>τ</th><td>17</td><th>Tilt</th><td>0.34 radians</td></tr>
+        </table></div>
+        <p class="hint" style="margin-top:12px">These are the settings used for the cover. The labels such as "one loop" come from reading the last part of each run, so treat them as a rough guide near the edges.</p>
+      </section>
+    </div>
+  </div>
+  <footer class="foot">From the back cover of <em>Mechanism-Based Sleep Apnea Phenotyping</em>, doctoral thesis by Thijs-Enagnon Nassi, University of Twente, 2027.</footer>
+</div>
+
+<script>
+// MODEL-START
+const NOISE = [0.7739560485559633, 0.4388784397520523, 0.8585979199113825, 0.6973680290593639, 0.09417734788764953, 0.9756223516367559, 0.761139701990353, 0.7860643052769538, 0.12811363267554587, 0.45038593789556713, 0.37079802423258124, 0.9267649888486018, 0.6438651200806645, 0.82276161327083, 0.44341419882733113, 0.2272387217847769, 0.5545847870158348, 0.06381725610417532, 0.8276311719925821, 0.6316643991220648, 0.7580877400853738, 0.35452596812986836, 0.9706980243949033, 0.8931211213221977, 0.7783834970737619, 0.19463870785196757, 0.4667210037270342, 0.04380376578722878, 0.15428949206754783, 0.6830489532424546, 0.7447621559078171, 0.96750973243421, 0.32582535813815194, 0.3704597060348689, 0.4695558112758079, 0.1894713590842857, 0.12992150533547164, 0.47570492622593374, 0.2269093490508841, 0.6698139946825103, 0.43715191887233074, 0.8326781960578374, 0.7002651020022491, 0.31236664138204107, 0.8322598013952011, 0.8047643574968019, 0.38747837903017446, 0.2883281039302441, 0.6824955039749755, 0.1397524836093098, 0.19990820247510832, 0.007362269751005512, 0.7869243775021384, 0.6648508565920321, 0.7051653786263351, 0.7807290310219679, 0.45891577553833995, 0.5687411959528937, 0.13979699812765745, 0.11453007353597344, 0.6684029617904717, 0.4710962061431325, 0.5652361064811888, 0.7649988574160256, 0.6347183200005908, 0.5535794006579958, 0.5592071607454135, 0.3039500980626122, 0.030817834567939406, 0.43671738923236236, 0.2145846728195292, 0.40852864372463615, 0.8534030732681661, 0.23393948586534075, 0.05830274168906602, 0.28138389202199654, 0.2935937577666836, 0.6619165147268951, 0.5570321523412783, 0.7838982091064135, 0.6643135403273875, 0.4063868614400705, 0.8140203846660347, 0.1669729199077039, 0.022712073133860478, 0.09004786077564175, 0.7223593505964503, 0.4618772302513874, 0.1612717790336018, 0.5010447751033635, 0.15231210271316842, 0.696320375077736, 0.4461562755740307, 0.3810212260964825, 0.3015120891478765, 0.6302825931188885, 0.3618126105533904, 0.087649919316101, 0.11800590212051532, 0.9618976645495145, 0.908580690707607, 0.6997071338107496, 0.2658699614595196, 0.9691763773477239, 0.7787509039657946, 0.7168901891589956, 0.44936150214378867, 0.272241561845159, 0.0963909621534993, 0.9026023965438417, 0.45577628983361107, 0.20236336479523032, 0.3059566241506525, 0.579219568941896, 0.1767727829392317, 0.8566142840923755, 0.7585195298352101, 0.7194629559509368, 0.4320930397751037, 0.6273088407024432, 0.5840979689127356, 0.64984660155482, 0.08444432113988909, 0.41580740217060963, 0.04161417386189248, 0.49399081924451893, 0.3298612123327853, 0.1445241888660469, 0.10340296772255164, 0.587644572177712, 0.1705929685368861, 0.9251201183767972, 0.581061139700395, 0.34686980453483707, 0.5909154914814168, 0.022803871029697498, 0.9585592132414453, 0.48230343694290023, 0.7827352272502862, 0.08272999992243857, 0.48665833083816035, 0.4907069943545209, 0.9378264549749828, 0.5717280523760754, 0.4734894010569538, 0.2669756630918936, 0.3315689973425522, 0.5206724024715378, 0.4389114603050467, 0.021612079880330426, 0.8262919241943578, 0.8961607718397667, 0.14024908899861077, 0.5540361435390494, 0.10857574113544355, 0.6722400930398117, 0.2812337838390083, 0.6594226346919018, 0.7269946142868826, 0.768647491917657, 0.10774094595589656, 0.9160118451376079, 0.23021399089488082, 0.03741255617617978, 0.5548524693914834, 0.37092228386243875, 0.8297897431324132, 0.8082514720643018, 0.31713889282271535, 0.952899395069745, 0.2909178381401186, 0.5150571292317145, 0.25596509056760275, 0.9360435700489633, 0.16460781758201815, 0.04491061939232899, 0.43509706000303794, 0.992375564055837, 0.891677266254914, 0.7486080194569492, 0.8907924908785249, 0.8934466396978632, 0.5188583603864491, 0.315929051830793, 0.772012432110988, 0.6616612631677611, 0.37365772887371007, 0.09446666806151527, 0.746789611349026, 0.2624605159228647, 0.9368131505337792, 0.24097057500568475, 0.12275793241148603, 0.8311126721249061, 0.15328431662449404, 0.1792683081577391, 0.5993827915208435, 0.8745620408374645, 0.19643466571457324, 0.31032367290009477, 0.7774048382411776, 0.9718264260609674, 0.5007411862023423, 0.14389750255125078, 0.013936287708201545, 0.22965602999885526, 0.13182221778652103, 0.6776586736128575, 0.12183250462853112, 0.506329931620633, 0.6942624356428865, 0.5811166092209024, 0.19977565166005762, 0.8041245261822627, 0.7154071296158017, 0.7389840039155418, 0.13105775155731325, 0.12375380365034461, 0.9275625510065076, 0.39757819382494064, 0.30094869178093975, 0.4885840453515333, 0.6628642127635824, 0.9556232570469699, 0.286446226882055, 0.9248084293120271, 0.024859491386256316, 0.5551980423268247, 0.6339751116810851, 0.1058974037507533, 0.14033959706391264, 0.41911431931630383, 0.9662319121431817, 0.5960425532343728, 0.9330232216002112, 0.8043609156129707, 0.4673816015552915, 0.7847634492521874, 0.017836783976987736, 0.10914399676573494, 0.8294286148827363, 0.7968170883251617, 0.2326407419664337, 0.5307695905990535, 0.6060158207000109, 0.8677389537760112, 0.6031071573387257, 0.4125715692736803, 0.3741840434071827, 0.4258820863735099, 0.6519310255799742, 0.8674906317523249, 0.45389688207629975, 0.24783956295135812, 0.23666236299758114, 0.7460142802434464, 0.8165687634239104, 0.10527807985412496, 0.06655885695517816, 0.5944336637564518, 0.14617324419269828, 0.8246641904563413, 0.31033467392407443, 0.14387193297114265, 0.9209704724874502, 0.16553172273527816, 0.28472008233793555, 0.15361339519205863, 0.11549006366535497, 0.021148016336440034, 0.05539540916426011, 0.1746414709358527, 0.05338193262717539, 0.5911438161109712, 0.6807145267995064, 0.39363045683202824, 0.3179910969520494, 0.5045262370222301, 0.8750049422346086, 0.851131626822206, 0.04347506201279194, 0.18149840959652408, 0.23674487110439602, 0.24938757583221183, 0.5712326517427727, 0.4162624257031923, 0.04925411992759399, 0.3736141384595716, 0.5237529487176372, 0.10167190290371597, 0.8334585537885597, 0.051961866465104256, 0.9248418690180621, 0.0991131415798755, 0.8435749515977528, 0.9026531439276171, 0.9795706805865927, 0.8020258802735936, 0.7794775407713289, 0.6424832759955477];
+const DT = 0.1, N = 30000;
+function integrate(p) {
+  const hl = Math.floor(p.tau / DT), X = new Float64Array(N);
+  for (let i = 0; i < hl; i++) X[i] = 1.1 + NOISE[i] * 0.03;
+  for (let i = hl; i < N; i++) {
+    const xt = X[i - hl];
+    X[i] = X[i - 1] + DT * (p.beta * xt / (1 + Math.pow(xt, p.n)) - p.gamma * X[i - 1]);
+  }
+  return { X, hl };
+}
+function balancePoint(p) { return p.beta > p.gamma ? Math.pow(p.beta / p.gamma - 1, 1 / p.n) : 0; }
+function classify(X) {
+  const start = Math.floor(X.length * 0.6);
+  let lo = Infinity, hi = -Infinity; const peaks = [];
+  for (let i = start; i < X.length; i++) { if (X[i] < lo) lo = X[i]; if (X[i] > hi) hi = X[i]; }
+  for (let i = start + 1; i < X.length - 1; i++) if (X[i] > X[i - 1] && X[i] >= X[i + 1]) peaks.push(X[i]);
+  const last = X[X.length - 1];
+  let label;
+  if (hi - lo < 2e-3) label = last < 0.01 ? "Dies out" : "Settles at a steady level";
+  else if (peaks.length < 3) label = last < 0.6 && X[start] > last ? "Fading slowly" : "Settling slowly";
+  else {
+    peaks.sort((a, b) => a - b);
+    let k = 1; for (let i = 1; i < peaks.length; i++) if (peaks[i] - peaks[i - 1] > 0.01) k++;
+    label = k === 1 ? "Repeats one loop" : k === 2 ? "Repeats with two alternating peaks" : k <= 8 ? "A more complicated repeat" : "Never falls into a simple repeat";
+  }
+  return { label, lo, hi };
+}
+// MODEL-END
+
+const COVER = { tau: 17, beta: 0.2, n: 10, gamma: 0.1 };
+const VIEW = 2410, SC = VIEW * 0.70, ROT = 0.34, LO = 0.41572449230047875, HI = 1.3205776204115918;
+const cR = Math.cos(ROT), sR = Math.sin(ROT);
+const nrm = v => (v - LO) / (HI - LO + 1e-9) - 0.5;
+const $ = id => document.getElementById(id);
+const state = { ...COVER };
+let run = null, zoom = 1, nowI = 0, playing = false, pts = null;
+
+const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+const ramp3 = (t, a, b, c) => t < 0.5 ? mix(a, b, t * 2) : mix(b, c, (t - 0.5) * 2);
+const INK = [[28, 122, 140], [75, 69, 184], [194, 74, 46]], GLOW = [[99, 216, 232], [158, 143, 255], [255, 142, 110]];
+const PAPER = [235, 229, 217];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const isGlow = () => css("--art") === "glow";
+
+function fit(c) {
+  const r = c.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(1, Math.round(r.width * d)), h = Math.max(1, Math.round(r.height * d));
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  return { w, h, d };
+}
+function project(X, hl) {
+  const L = X.length - 2 * hl, px = new Float64Array(L), py = new Float64Array(L);
+  for (let i = 0; i < L; i++) {
+    const a = nrm(X[i + 2 * hl]), b = nrm(X[i + hl]);
+    px[i] = (a * cR - b * sR) * SC; py[i] = (a * sR + b * cR) * SC;
+  }
+  return { px, py, L };
+}
+function drawStipple(ctx, size, P, z, sizeBoost) {
+  const glow = isGlow(), k = (size / VIEW) * z, c0 = size / 2, step = glow ? 2 : 1, RS = VIEW / 1600;
+  ctx.clearRect(0, 0, size, size);
+  ctx.globalCompositeOperation = glow ? "lighter" : "source-over";
+  for (let i = 1; i < P.L; i += step) {
+    const spd = Math.hypot(P.px[i] - P.px[i - 1], P.py[i] - P.py[i - 1]);
+    const t = i / P.L, floor = glow ? 0.15 : 0.12;
+    const br = Math.max(floor, Math.min(1, 2.2 / (spd + 1.2)));
+    let col, r;
+    if (glow) { col = ramp3(t, ...GLOW).map(v => v * (0.35 + 0.65 * br)); r = (1.2 + 2.4 * br) * RS; }
+    else { col = mix(PAPER, ramp3(t, ...INK), 0.12 + 0.88 * br); r = (0.9 + 1.8 * br) * RS; }
+    ctx.fillStyle = `rgb(${col[0] | 0},${col[1] | 0},${col[2] | 0})`;
+    ctx.beginPath();
+    ctx.arc(c0 + P.px[i] * k, c0 + P.py[i] * k, Math.max(sizeBoost, r * k), 0, 6.2832);
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = "source-over";
+}
+function drawArt() {
+  const c = $("art"), f = fit(c);
+  drawStipple(c.getContext("2d"), f.w, pts, zoom, 0.42 * f.d);
+}
+function drawOverlay() {
+  const c = $("over"), f = fit(c), ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, f.w, f.h);
+  const i = Math.max(0, nowI - 2 * run.hl), k = (f.w / VIEW) * zoom, c0 = f.w / 2;
+  const X = j => c0 + pts.px[j] * k, Y = j => c0 + pts.py[j] * k;
+  ctx.strokeStyle = css("--ink"); ctx.lineWidth = 1.6 * f.d; ctx.globalAlpha = 0.85; ctx.beginPath();
+  const from = Math.max(0, i - 260);
+  ctx.moveTo(X(from), Y(from)); for (let j = from + 1; j <= i; j++) ctx.lineTo(X(j), Y(j)); ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = css("--paper"); ctx.beginPath(); ctx.arc(X(i), Y(i), 7.5 * f.d, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = css("--ink"); ctx.beginPath(); ctx.arc(X(i), Y(i), 5 * f.d, 0, 6.2832); ctx.fill();
+}
+function drawTimeline() {
+  const c = $("tl"), f = fit(c), ctx = c.getContext("2d"), d = f.d;
+  const ink = css("--ink"), mute = css("--ink-2"), tau = css("--tau"), rule = css("--rule");
+  ctx.clearRect(0, 0, f.w, f.h);
+  const X = run.X, hl = run.hl, past = Math.max(2200, hl + 500), fut = 500;
+  const a = Math.max(0, nowI - past), b = Math.min(N - 1, nowI + fut);
+  let hi = 1.5; for (let i = a; i <= b; i++) if (X[i] > hi) hi = X[i];
+  hi *= 1.08;
+  const top = 26 * d, bot = f.h - 18 * d, lft = 2 * d, rgt = f.w - 2 * d;
+  const px = i => lft + (i - a) / (b - a) * (rgt - lft), py = v => bot - (v / hi) * (bot - top);
+  ctx.strokeStyle = rule; ctx.lineWidth = d; ctx.beginPath(); ctx.moveTo(lft, bot); ctx.lineTo(rgt, bot); ctx.stroke();
+  ctx.lineWidth = 1.6 * d; ctx.strokeStyle = ink; ctx.beginPath(); ctx.moveTo(px(a), py(X[a]));
+  for (let i = a + 1; i <= nowI; i += 3) ctx.lineTo(px(i), py(X[i])); ctx.lineTo(px(nowI), py(X[nowI])); ctx.stroke();
+  ctx.globalAlpha = 0.28; ctx.beginPath(); ctx.moveTo(px(nowI), py(X[nowI]));
+  for (let i = nowI + 1; i <= b; i += 3) ctx.lineTo(px(i), py(X[i])); ctx.stroke(); ctx.globalAlpha = 1;
+  const t0 = nowI - hl, xN = px(nowI), xT = px(t0), yBr = top - 9 * d;
+  ctx.setLineDash([3 * d, 3 * d]); ctx.lineWidth = d;
+  ctx.strokeStyle = ink; ctx.beginPath(); ctx.moveTo(xN, yBr); ctx.lineTo(xN, bot); ctx.stroke();
+  ctx.strokeStyle = tau; ctx.beginPath(); ctx.moveTo(xT, yBr); ctx.lineTo(xT, bot); ctx.stroke();
+  ctx.setLineDash([]); ctx.lineWidth = 1.5 * d; ctx.beginPath(); ctx.moveTo(xT, yBr); ctx.lineTo(xN, yBr); ctx.stroke();
+  ctx.fillStyle = tau; ctx.beginPath(); ctx.arc(xT, py(X[t0]), 4.5 * d, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(xN, py(X[nowI]), 4.5 * d, 0, 6.2832); ctx.fill();
+  ctx.font = `${12.5 * d}px ${css("--body")}`; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = tau; ctx.textAlign = "right"; ctx.fillText("one delay ago", xT - 5 * d, yBr + 3 * d);
+  ctx.fillStyle = ink; ctx.textAlign = "left"; ctx.fillText("now", xN + 5 * d, yBr + 3 * d);
+  ctx.fillStyle = mute; ctx.textAlign = "left"; ctx.fillText("amount over time", lft, f.h - 4 * d);
+}
+function drawBalance() {
+  const c = $("bal"), f = fit(c), ctx = c.getContext("2d"), d = f.d, p = state;
+  const beta = css("--beta"), gamma = css("--gamma"), ink = css("--ink"), mute = css("--ink-2"), rule = css("--rule");
+  ctx.clearRect(0, 0, f.w, f.h);
+  const xMax = Math.max(2, Math.min(4, run.cl.hi * 1.15));
+  const hump = u => p.beta * u / (1 + Math.pow(u, p.n));
+  let yMax = p.gamma * xMax; for (let i = 0; i <= 300; i++) yMax = Math.max(yMax, hump(i / 300 * xMax));
+  yMax *= 1.14;
+  const L = 8 * d, R = f.w - 74 * d, T = 12 * d, B = f.h - 30 * d;
+  const X = u => L + u / xMax * (R - L), Y = v => B - v / yMax * (B - T);
+  if (run.cl.hi - run.cl.lo > 0.02) { ctx.fillStyle = rule; ctx.globalAlpha = 0.55; ctx.fillRect(X(run.cl.lo), T, X(Math.min(run.cl.hi, xMax)) - X(run.cl.lo), B - T); ctx.globalAlpha = 1; }
+  ctx.strokeStyle = mute; ctx.lineWidth = d; ctx.beginPath(); ctx.moveTo(L, B); ctx.lineTo(R, B); ctx.stroke();
+  ctx.fillStyle = mute; ctx.font = `${13 * d}px ${css("--body")}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let u = 0; u <= xMax + 1e-9; u += 1) { ctx.beginPath(); ctx.moveTo(X(u), B); ctx.lineTo(X(u), B + 4 * d); ctx.stroke(); ctx.fillText(String(u), X(u), B + 7 * d); }
+  ctx.textAlign = "left"; ctx.fillText("amount", X(xMax) + 8 * d, B - 7 * d);
+  ctx.strokeStyle = gamma; ctx.lineWidth = 2 * d; ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(xMax), Y(p.gamma * xMax)); ctx.stroke();
+  ctx.strokeStyle = beta; ctx.beginPath(); for (let i = 0; i <= 400; i++) { const u = i / 400 * xMax; i ? ctx.lineTo(X(u), Y(hump(u))) : ctx.moveTo(X(u), Y(hump(u))); } ctx.stroke();
+  ctx.textBaseline = "middle"; ctx.font = `500 ${13 * d}px ${css("--body")}`;
+  const yG = Y(p.gamma * xMax), yB = Y(hump(xMax)); let yb = yB; if (Math.abs(yb - yG) < 18 * d) yb = yG + (yB >= yG ? 18 : -18) * d;
+  ctx.fillStyle = gamma; ctx.fillText("leaves", X(xMax) + 8 * d, yG);
+  ctx.fillStyle = beta; ctx.fillText("arrives", X(xMax) + 8 * d, Math.min(yb, B - 22 * d));
+  const x0 = balancePoint(p);
+  if (x0 > 0 && x0 <= xMax) { ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(X(x0), Y(p.gamma * x0), 5 * d, 0, 6.2832); ctx.fill(); }
+}
+function drawThumbs() {
+  document.querySelectorAll(".thumb").forEach(b => {
+    const c = b.querySelector("canvas"), f = fit(c);
+    const r = integrate({ ...COVER, tau: +b.dataset.tau });
+    drawStipple(c.getContext("2d"), f.w, project(r.X, r.hl), 1, 0.3 * f.d);
+    b.setAttribute("aria-pressed", String(+b.dataset.tau === state.tau && state.beta === COVER.beta && state.n === COVER.n && state.gamma === COVER.gamma));
+  });
+}
+function readout() {
+  const X = run.X, a = X[nowI], b = X[nowI - run.hl];
+  $("readout").innerHTML = `Now <b>${a.toFixed(2)}</b> · one delay ago <b>${b.toFixed(2)}</b> · these two numbers place the dot`;
+}
+function recompute() {
+  const r = integrate(state);
+  run = { ...r, cl: classify(r.X) };
+  pts = project(r.X, r.hl);
+  let e = 0; for (let i = 0; i < pts.L; i++) e = Math.max(e, Math.abs(pts.px[i]), Math.abs(pts.py[i]));
+  zoom = e > VIEW / 2 * 0.97 ? VIEW / 2 * 0.97 / e : 1;
+  const min = 2 * r.hl, inp = $("now"); inp.min = min; inp.max = N - 1;
+  nowI = Math.max(min, Math.min(N - 1, nowI || (min + Math.floor((N - min) * 0.62))));
+  inp.value = nowI;
+  const same = state.tau === COVER.tau && state.beta === COVER.beta && state.n === COVER.n && state.gamma === COVER.gamma;
+  $("plateTag").textContent = (same ? "The cover" : "Your settings") + (zoom < 1 ? ", zoomed out to fit" : "");
+  $("verdict").textContent = run.cl.label;
+  const b0 = balancePoint(state);
+  $("balance").textContent = b0 > 0 ? `balance at ${b0.toFixed(2)}` : "no balance above zero";
+  for (const k of ["tau", "beta", "n", "gamma"]) $("o-" + k).textContent = k === "n" ? state[k] : k === "tau" ? state[k] : state[k].toFixed(2);
+}
+let pending = 0;
+function schedule() { if (pending) return; pending = requestAnimationFrame(() => { pending = 0; recompute(); drawArt(); drawOverlay(); drawTimeline(); drawBalance(); readout(); drawThumbMarks(); }); }
+function drawThumbMarks() { document.querySelectorAll(".thumb").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.tau === state.tau && state.beta === COVER.beta && state.n === COVER.n && state.gamma === COVER.gamma))); }
+function setMoment() { drawOverlay(); drawTimeline(); readout(); }
+function apply(k, v) { state[k] = v; $(k).value = v; }
+
+for (const k of ["tau", "beta", "n", "gamma"]) $(k).addEventListener("input", e => { state[k] = parseFloat(e.target.value); schedule(); });
+$("reset").addEventListener("click", () => { for (const k in COVER) apply(k, COVER[k]); schedule(); });
+$("now").addEventListener("input", e => { nowI = +e.target.value; setMoment(); });
+function reveal() { if (window.innerWidth <= 860) { const m = matchMedia("(prefers-reduced-motion: reduce)").matches; $("stage").scrollIntoView({ behavior: m ? "auto" : "smooth", block: "start" }); } }
+document.querySelectorAll("[data-set]").forEach(b => b.addEventListener("click", () => { const [k, v] = b.dataset.set.split("="); apply(k, parseFloat(v)); schedule(); reveal(); }));
+
+const box = $("thumbs");
+[[3, "Settles to a point"], [8, "One loop"], [14, "Two peaks"], [17, "The cover"]].forEach(([t, l]) => {
+  const b = document.createElement("button"); b.type = "button"; b.className = "thumb"; b.dataset.tau = t;
+  b.innerHTML = `<canvas></canvas><span><b>τ = ${t}</b>${l}</span>`;
+  b.addEventListener("click", () => { for (const k in COVER) apply(k, COVER[k]); apply("tau", t); schedule(); reveal(); });
+  box.appendChild(b);
+});
+
+function tick() {
+  if (!playing) return;
+  nowI += 6; if (nowI >= N - 1) nowI = 2 * run.hl;
+  $("now").value = nowI; setMoment(); requestAnimationFrame(tick);
+}
+$("play").addEventListener("click", () => { playing = !playing; $("play").textContent = playing ? "Pause" : "Play"; if (playing) requestAnimationFrame(tick); });
+
+function redrawAll() { schedule(); drawThumbs(); }
+new ResizeObserver(() => redrawAll()).observe($("art"));
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawTimeline(); drawBalance(); });
+recompute(); drawArt(); drawOverlay(); drawTimeline(); drawBalance(); readout(); drawThumbs();
+</script>
+</body>
+</html>
